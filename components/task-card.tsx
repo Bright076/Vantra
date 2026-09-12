@@ -71,7 +71,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
       
       if (result.success) {
         // Open task link in new tab
-        window.open(task.task_link, '_blank', 'noopener,noreferrer')
+        window.open(task.link, '_blank', 'noopener,noreferrer')
         
         // Refresh to show updated state
         router.refresh()

@@ -33,7 +33,7 @@ export interface Task {
   description?: string | null
   type: TaskType
   reward_amount: number
-  task_link: string
+  link: string
   ad_network_slot?: string | null
   is_active: boolean
   created_at: string
