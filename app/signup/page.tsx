@@ -88,7 +88,10 @@ function SignupForm() {
           referred_by: referrerId,
         })
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+        throw new Error('Failed to create profile: ' + profileError.message)
+      }
 
       // 5. If referred by someone, create a pending referral record
       if (referrerId) {
