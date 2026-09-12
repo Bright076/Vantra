@@ -6,6 +6,7 @@ export type TaskCompletionStatus = 'pending' | 'verifying' | 'completed' | 'fail
 export interface Profile {
   id: string
   email: string
+  username?: string | null
   role: UserRole
   usdt_balance: number
   points: number

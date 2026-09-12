@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { generateReferralCode } from '@/lib/utils/referral'
 import Link from 'next/link'
+import { User, Mail, Lock, Gift, ArrowRight } from 'lucide-react'
 
 function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const referralCode = searchParams.get('ref')
 
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -24,6 +26,11 @@ function SignupForm() {
     setMessage(null)
 
     // Validation
+    if (username.length < 3) {
+      setError('Username must be at least 3 characters')
+      return
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
@@ -73,6 +80,7 @@ function SignupForm() {
         .insert({
           id: userId,
           email: authData.user.email!,
+          username: username,
           role: 'user',
           usdt_balance: 2.0, // $2 welcome bonus
           points: 20, // 20 points welcome bonus
@@ -101,7 +109,7 @@ function SignupForm() {
 
       // Success! User is created with welcome bonus
       setMessage(
-        'Account created successfully! Welcome bonus of $2 and 20 points credited. Please check your email to verify your account.'
+        'Account created successfully! Welcome bonus of $2 and 20 points credited.'
       )
 
       // Redirect to login after 2 seconds
@@ -117,104 +125,204 @@ function SignupForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Create your account
-          </h2>
-          {referralCode && (
-            <p className="mt-2 text-center text-sm text-green-600 dark:text-green-400">
-              🎉 You were referred! You'll get $2 + 20 points, and your referrer gets $1 + 10
-              points when you complete your first task.
+    <div className="flex min-h-screen">
+      {/* Left Side - Form */}
+      <div className="flex w-full flex-col justify-center px-4 py-12 sm:px-6 lg:w-1/2 lg:px-20 xl:px-24">
+        <div className="mx-auto w-full max-w-sm lg:w-96">
+          <div>
+            <h2 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+              Create Account
+            </h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Already have an account?{' '}
+              <Link
+                href="/login"
+                className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+              >
+                Sign in →
+              </Link>
             </p>
-          )}
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSignup}>
-          <div className="-space-y-px rounded-md shadow-sm">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="relative block w-full rounded-t-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="relative block w-full border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
-                placeholder="Password (min. 6 characters)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="confirm-password" className="sr-only">
-                Confirm Password
-              </label>
-              <input
-                id="confirm-password"
-                name="confirm-password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="relative block w-full rounded-b-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
-                placeholder="Confirm password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
           </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+          {referralCode && (
+            <div className="mt-6 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 p-4 dark:from-green-900/20 dark:to-emerald-900/20">
+              <div className="flex items-center gap-2">
+                <Gift className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                  You were referred! Get $2 + 20 points bonus
+                </p>
+              </div>
             </div>
           )}
 
-          {message && (
-            <div className="rounded-md bg-green-50 p-4 dark:bg-green-900/20">
-              <p className="text-sm text-green-800 dark:text-green-200">{message}</p>
+          <form className="mt-8 space-y-5" onSubmit={handleSignup}>
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Username
+              </label>
+              <div className="relative mt-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  minLength={3}
+                  className="block w-full rounded-lg border-0 py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
+                  placeholder="johndoe"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
             </div>
-          )}
 
-          <div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Email address
+              </label>
+              <div className="relative mt-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="block w-full rounded-lg border-0 py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password
+              </label>
+              <div className="relative mt-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={6}
+                  className="block w-full rounded-lg border-0 py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Confirm password
+              </label>
+              <div className="relative mt-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="confirm-password"
+                  name="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="block w-full rounded-lg border-0 py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-lg bg-red-50 p-4 dark:bg-red-900/20">
+                <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+              </div>
+            )}
+
+            {message && (
+              <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
+                <p className="text-sm text-green-800 dark:text-green-200">{message}</p>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? (
+                'Creating account...'
+              ) : (
+                <>
+                  Create account
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
             </button>
-          </div>
 
-          <div className="text-center text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Already have an account? </span>
-            <Link
-              href="/login"
-              className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
-            >
-              Sign in
-            </Link>
+            <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+              By signing up, you agree to our Terms of Service and Privacy Policy
+            </p>
+          </form>
+        </div>
+      </div>
+
+      {/* Right Side - Hero/Benefits */}
+      <div className="relative hidden lg:block lg:w-1/2">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-700">
+          <div className="flex h-full flex-col justify-center px-12 text-white">
+            <h1 className="text-5xl font-bold leading-tight">
+              Start Earning Today
+            </h1>
+            <p className="mt-4 text-xl text-indigo-100">
+              Complete tasks, earn USDT, and grow your income.
+            </p>
+            
+            <div className="mt-12 space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-white/10">
+                  <Gift className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">$2 Welcome Bonus</h3>
+                  <p className="text-sm text-indigo-100">Start earning immediately with your sign-up bonus</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-white/10">
+                  <User className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Referral Rewards</h3>
+                  <p className="text-sm text-indigo-100">Earn $1 + 10 points for every friend you refer</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-white/10">
+                  <Lock className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Secure & Trusted</h3>
+                  <p className="text-sm text-indigo-100">Your data and earnings are protected</p>
+                </div>
+              </div>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   )
@@ -222,11 +330,13 @@ function SignupForm() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        </div>
+      }
+    >
       <SignupForm />
     </Suspense>
   )

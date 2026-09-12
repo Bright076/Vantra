@@ -11,6 +11,7 @@ CREATE TYPE referral_status AS ENUM ('pending', 'paid');
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
+  username TEXT UNIQUE,
   role user_role NOT NULL DEFAULT 'user',
   balance DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
   points INTEGER NOT NULL DEFAULT 0,
