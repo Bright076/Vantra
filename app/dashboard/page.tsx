@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { ReferralStatsCard } from '@/components/referral-stats-card'
 import { DailyCheckinButton } from '@/components/daily-checkin-button'
-import { LogoutButton } from '@/components/logout-button'
 import { BottomNav } from '@/components/bottom-nav'
-import { DollarSign, Trophy, Gift, TrendingUp } from 'lucide-react'
+import { DollarSign, Trophy, Gift, TrendingUp, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function DashboardPage() {
   const userData = await getUser()
@@ -38,15 +38,37 @@ export default async function DashboardPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 pb-20">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-              <p className="mt-1 text-gray-600 dark:text-gray-400">
-                Welcome back, {profile.email}
-              </p>
-            </div>
-            <LogoutButton />
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p className="mt-1 text-gray-600 dark:text-gray-400">
+              Welcome back, {profile.email}
+            </p>
           </div>
+
+          {/* Wallet Warning Banner */}
+          {!profile.wallet_address && (
+            <Card className="mb-6 border-2 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-6 w-6 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-amber-900 dark:text-amber-100">
+                      Wallet Address Required
+                    </h3>
+                    <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                      Add your USDT wallet address to be eligible for payouts.
+                    </p>
+                    <Link
+                      href="/settings"
+                      className="mt-3 inline-flex items-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+                    >
+                      Add Wallet Address →
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Left Column - Main Stats */}
