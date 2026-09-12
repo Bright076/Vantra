@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { ReferralStatsCard } from '@/components/referral-stats-card'
 import { DailyCheckinButton } from '@/components/daily-checkin-button'
 import { BottomNav } from '@/components/bottom-nav'
+import { NotificationBell } from '@/components/notification-bell'
 import { DollarSign, Trophy, Gift, TrendingUp, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -38,11 +39,14 @@ export default async function DashboardPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 pb-20">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-            <p className="mt-1 text-gray-600 dark:text-gray-400">
-              Welcome back, {profile.email}
-            </p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+              <p className="mt-1 text-gray-600 dark:text-gray-400">
+                Welcome back, {profile.email}
+              </p>
+            </div>
+            <NotificationBell />
           </div>
 
           {/* Wallet Warning Banner */}
