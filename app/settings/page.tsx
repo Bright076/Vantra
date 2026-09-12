@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BottomNav } from '@/components/bottom-nav'
+import { LogoutButton } from '@/components/logout-button'
 import { Wallet, Save, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -220,6 +221,16 @@ export default function SettingsPage() {
                 <div className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-600" />
                 <p>You can update your wallet address at any time</p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Account Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Account Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LogoutButton />
             </CardContent>
           </Card>
         </div>
