@@ -46,21 +46,10 @@ function SignupForm() {
     try {
       const supabase = createClient()
 
-      // 1. Sign up the user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-      })
-
-      if (authError) throw authError
-      if (!authData.user) throw new Error('Failed to create user')
-
-      const userId = authData.user.id
-
-      // 2. Generate unique referral code for the new user
+      // Generate unique referral code first
       const newReferralCode = generateReferralCode()
 
-      // 3. Look up referrer if referral code is provided
+      // Look up referrer if referral code is provided
       let referrerId: string | null = null
       if (referralCode) {
         const { data: referrerProfile, error: referrerError } = await supabase
@@ -74,26 +63,69 @@ function SignupForm() {
         }
       }
 
-      // 4. Create profile with welcome bonus ($2 + 20 points)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          email: authData.user.email!,
-          username: username,
-          role: 'user',
-          usdt_balance: 2.0, // $2 welcome bonus
-          points: 20, // 20 points welcome bonus
-          referral_code: newReferralCode,
-          referred_by: referrerId,
-        })
+      // 1. Sign up the user with metadata
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: username,
+            referral_code: newReferralCode,
+            referred_by: referrerId,
+          },
+        },
+      })
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError)
-        throw new Error('Failed to create profile: ' + profileError.message)
+      if (authError) throw authError
+      if (!authData.user) throw new Error('Failed to create user')
+
+      const userId = authData.user.id
+
+      // 2. Check if profile was auto-created by trigger
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single()
+
+      // 3. If no profile exists, create it manually
+      if (!existingProfile) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: authData.user.email!,
+            username: username,
+            role: 'user',
+            usdt_balance: 2.0,
+            points: 20,
+            referral_code: newReferralCode,
+            referred_by: referrerId,
+          })
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError)
+          throw new Error('Failed to create profile: ' + profileError.message)
+        }
+      } else {
+        // Profile was auto-created, update it with our data
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            username: username,
+            usdt_balance: 2.0,
+            points: 20,
+            referral_code: newReferralCode,
+            referred_by: referrerId,
+          })
+          .eq('id', userId)
+
+        if (updateError) {
+          console.error('Profile update error:', updateError)
+        }
       }
 
-      // 5. If referred by someone, create a pending referral record
+      // 4. If referred by someone, create a pending referral record
       if (referrerId) {
         const { error: referralError } = await supabase
           .from('referrals')
