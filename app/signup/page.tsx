@@ -10,12 +10,13 @@ import { User, Mail, Lock, Gift, ArrowRight } from 'lucide-react'
 function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const referralCode = searchParams.get('ref')
+  const urlReferralCode = searchParams.get('ref')
 
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [referralCode, setReferralCode] = useState(urlReferralCode || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -51,11 +52,11 @@ function SignupForm() {
 
       // Look up referrer if referral code is provided
       let referrerId: string | null = null
-      if (referralCode) {
+      if (referralCode && referralCode.trim()) {
         const { data: referrerProfile, error: referrerError } = await supabase
           .from('profiles')
           .select('id')
-          .eq('referral_code', referralCode.toUpperCase())
+          .eq('referral_code', referralCode.toUpperCase().trim())
           .single()
 
         if (!referrerError && referrerProfile) {
@@ -278,6 +279,31 @@ function SignupForm() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="referral-code" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Referral Code (Optional)
+              </label>
+              <div className="relative mt-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Gift className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="referral-code"
+                  name="referral-code"
+                  type="text"
+                  className="block w-full rounded-lg border-0 py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 sm:text-sm sm:leading-6 uppercase"
+                  placeholder="Enter referral code"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                />
+              </div>
+              {referralCode && (
+                <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                  ✓ Referral code will be applied
+                </p>
+              )}
             </div>
 
             {error && (

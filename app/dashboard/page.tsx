@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { ReferralStatsCard } from '@/components/referral-stats-card'
 import { DailyCheckinButton } from '@/components/daily-checkin-button'
 import { LogoutButton } from '@/components/logout-button'
+import { BottomNav } from '@/components/bottom-nav'
 import { DollarSign, Trophy, Gift, TrendingUp } from 'lucide-react'
 
 export default async function DashboardPage() {
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
 
   return (
     <ProtectedRoute requiredRole="user">
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 pb-20">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -149,6 +150,7 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+      <BottomNav />
     </ProtectedRoute>
   )
 }
