@@ -27,10 +27,11 @@ export default function LeaderboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       setCurrentUserId(user?.id || null)
 
-      // Fetch top 10 users by points
+      // Fetch top 10 users by points (exclude admins)
       const { data, error } = await supabase
         .from('profiles')
         .select('id, username, email, points')
+        .eq('role', 'user')
         .order('points', { ascending: false })
         .limit(10)
 

@@ -227,16 +227,18 @@ export default function AdminTasksPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Link
+                    Link (Optional)
                   </label>
                   <input
                     type="url"
-                    required
                     className="mt-1 block w-full rounded-lg border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700"
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
-                    placeholder="https://..."
+                    placeholder="https://... (optional)"
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Leave empty if task doesn't require external link
+                  </p>
                 </div>
 
                 <div>

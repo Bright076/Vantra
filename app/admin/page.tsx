@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LogoutButton } from '@/components/logout-button'
 import Link from 'next/link'
-import { ListTodo, Calendar, Users, DollarSign, Bell } from 'lucide-react'
+import { ListTodo, Calendar, Users, DollarSign, Bell, Trophy } from 'lucide-react'
 
 export default async function AdminPage() {
   const userData = await getUser()
@@ -122,6 +122,24 @@ export default async function AdminPage() {
                 <CardContent>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Send notifications to users
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/leaderboard">
+              <Card className="cursor-pointer transition-all hover:scale-105 hover:shadow-lg">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-yellow-100 p-3 dark:bg-yellow-900">
+                      <Trophy className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                    </div>
+                    <CardTitle>Leaderboard</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    View top performers and rankings
                   </p>
                 </CardContent>
               </Card>

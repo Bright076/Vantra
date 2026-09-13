@@ -148,6 +148,34 @@ export default async function DashboardPage() {
             <div className="space-y-6">
               <ReferralStatsCard referralCode={profile.referral_code} referralCount={referralCount} />
 
+              {/* Leaderboard Preview */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Trophy className="h-5 w-5 text-yellow-600" />
+                      Leaderboard
+                    </CardTitle>
+                    <Link
+                      href="/leaderboard"
+                      className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                    >
+                      View All →
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Check your ranking and compete with top earners for withdrawal spots!
+                  </p>
+                  <Link href="/leaderboard">
+                    <button className="mt-4 w-full rounded-lg bg-gradient-to-r from-yellow-400 to-amber-500 px-4 py-3 font-semibold text-gray-900 hover:from-yellow-500 hover:to-amber-600">
+                      View Rankings
+                    </button>
+                  </Link>
+                </CardContent>
+              </Card>
+
               {/* Quick Stats */}
               <Card>
                 <CardHeader>

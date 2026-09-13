@@ -102,10 +102,11 @@ export default function AdminRoundsPage() {
     try {
       const supabase = createClient()
 
-      // Get top 5 users by points
+      // Get top 5 users by points (exclude admins)
       const { data: topUsers, error: usersError } = await supabase
         .from('profiles')
         .select('id, usdt_balance, points')
+        .eq('role', 'user')
         .order('points', { ascending: false })
         .limit(5)
 
