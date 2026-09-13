@@ -12,10 +12,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setSuccess(false)
     setLoading(true)
 
     try {
@@ -39,15 +41,18 @@ export default function LoginPage() {
 
       if (profileError) throw profileError
 
-      // Redirect based on role
-      if (profile.role === 'admin') {
-        router.push('/admin')
-      } else {
-        router.push('/dashboard')
-      }
+      // Show success message
+      setSuccess(true)
 
-      // Force refresh to update the session
-      router.refresh()
+      // Redirect based on role after a brief delay
+      setTimeout(() => {
+        if (profile.role === 'admin') {
+          router.push('/admin')
+        } else {
+          router.push('/dashboard')
+        }
+        router.refresh()
+      }, 1000)
     } catch (err: any) {
       console.error('Login error:', err)
       setError(err.message || 'Invalid email or password')
@@ -135,13 +140,23 @@ export default function LoginPage() {
               </div>
             )}
 
+            {success && (
+              <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  ✓ Login successful! Redirecting...
+                </p>
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || success}
               className="group flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 'Signing in...'
+              ) : success ? (
+                '✓ Success!'
               ) : (
                 <>
                   Sign in

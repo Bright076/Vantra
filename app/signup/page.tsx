@@ -145,7 +145,7 @@ function SignupForm() {
 
       // Success! User is created with welcome bonus
       setMessage(
-        'Account created successfully! Welcome bonus of $2 and 20 points credited.'
+        '✓ Account created successfully! Welcome bonus of $2 and 20 points credited. Redirecting to login...'
       )
 
       // Redirect to login after 2 seconds
