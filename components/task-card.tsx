@@ -67,11 +67,49 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   const handlePerformTask = async () => {
     setLoading(true)
     try {
+      // Inject ad script dynamically for ad-type tasks BEFORE starting the task
+      if (task.type === 'ad' && task.ad_network_slot) {
+        // Create a temporary container for the script
+        const scriptContainer = document.createElement('div')
+        scriptContainer.innerHTML = task.ad_network_slot
+        
+        // Extract and execute all script tags from the ad_network_slot
+        const scripts = scriptContainer.getElementsByTagName('script')
+        for (let i = 0; i < scripts.length; i++) {
+          const oldScript = scripts[i]
+          const newScript = document.createElement('script')
+          
+          // Copy all attributes
+          Array.from(oldScript.attributes).forEach(attr => {
+            newScript.setAttribute(attr.name, attr.value)
+          })
+          
+          // Copy script content
+          if (oldScript.src) {
+            newScript.src = oldScript.src
+          } else {
+            newScript.textContent = oldScript.textContent
+          }
+          
+          // Append to body to execute
+          document.body.appendChild(newScript)
+          
+          // Clean up after a short delay
+          setTimeout(() => {
+            if (newScript.parentNode) {
+              newScript.parentNode.removeChild(newScript)
+            }
+          }, 5000)
+        }
+      }
+      
       const result = await startTask(task.id)
       
       if (result.success) {
-        // Open task link in new tab
-        window.open(task.link, '_blank', 'noopener,noreferrer')
+        // Open task link in new tab (if link exists)
+        if (task.link) {
+          window.open(task.link, '_blank', 'noopener,noreferrer')
+        }
         
         // Refresh to show updated state
         router.refresh()
@@ -141,18 +179,15 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         </CardHeader>
 
         <CardContent className="flex-1 space-y-3">
-          {/* Ad Network Slot - Reserved for future integration */}
+          {/* Ad Network Slot - Will be injected dynamically on task click */}
           {task.ad_network_slot && task.type === 'ad' && (
-            <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-              <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+            <div className="rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900/20">
+              <div className="text-center text-xs text-blue-600 dark:text-blue-400">
                 <AlertCircle className="mx-auto mb-1 h-4 w-4" />
-                <p>Ad Network Slot</p>
-                {/* Future: Third-party ad script will render here */}
-                {/* For now, just show placeholder text */}
-                <div
-                  className="mt-2 text-xs"
-                  dangerouslySetInnerHTML={{ __html: task.ad_network_slot }}
-                />
+                <p className="font-medium">Ad-Supported Task</p>
+                <p className="mt-1 text-[10px] opacity-80">
+                  Ad script will load when you click "Perform Task"
+                </p>
               </div>
             </div>
           )}
