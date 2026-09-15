@@ -32,10 +32,10 @@ export async function startTask(taskId: string): Promise<TaskActionResult> {
     // Check if user already completed this task
     const { data: existingCompletion } = await supabase
       .from('task_completions')
-      .select('id')
+      .select('id, status')
       .eq('task_id', taskId)
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (existingCompletion) {
       return { success: false, message: 'You have already completed this task' }
@@ -53,15 +53,70 @@ export async function startTask(taskId: string): Promise<TaskActionResult> {
       return { success: false, message: 'Task not found' }
     }
 
-    // Create task completion record
-    const initialStatus = task.type === 'ad' ? 'pending' : 'verifying'
-    
+    // For ad tasks: create as completed immediately and credit reward synchronously
+    if (task.type === 'ad') {
+      // Get user's current balance and points
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('usdt_balance, points')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile) {
+        return { success: false, message: 'Profile not found' }
+      }
+
+      const newBalance = profile.usdt_balance + task.reward_amount
+      const newPoints = profile.points + task.reward_amount * 10
+
+      // Create task completion as completed immediately
+      const { data: completion, error: completionError } = await supabase
+        .from('task_completions')
+        .insert({
+          task_id: taskId,
+          user_id: user.id,
+          status: 'completed',
+          started_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+          reward_credited: true,
+        })
+        .select()
+        .single()
+
+      if (completionError) {
+        console.error('Error creating task completion:', completionError)
+        return { success: false, message: 'Failed to start task' }
+      }
+
+      // Update profile with new balance and points
+      await supabase
+        .from('profiles')
+        .update({
+          usdt_balance: newBalance,
+          points: newPoints,
+        })
+        .eq('id', user.id)
+
+      // Check and process referral payout (first task completion)
+      await checkAndProcessReferral(user.id)
+
+      revalidatePath('/tasks')
+      revalidatePath('/dashboard')
+
+      return {
+        success: true,
+        message: 'Task completed and reward credited',
+        completionId: completion.id,
+      }
+    }
+
+    // For social tasks: create as verifying
     const { data: completion, error: completionError } = await supabase
       .from('task_completions')
       .insert({
         task_id: taskId,
         user_id: user.id,
-        status: initialStatus,
+        status: 'verifying',
         started_at: new Date().toISOString(),
       })
       .select()
@@ -70,18 +125,6 @@ export async function startTask(taskId: string): Promise<TaskActionResult> {
     if (completionError) {
       console.error('Error creating task completion:', completionError)
       return { success: false, message: 'Failed to start task' }
-    }
-
-    // For ad tasks: immediately complete and credit reward
-    if (task.type === 'ad') {
-      await completeTaskImmediately(completion.id, task.reward_amount, user.id)
-    }
-
-    // For social tasks: schedule completion after 5 minutes
-    if (task.type === 'social') {
-      // We'll use an API route with setTimeout for reliability
-      // Call the API route to schedule the completion
-      scheduleTaskCompletion(completion.id, task.reward_amount, user.id)
     }
 
     revalidatePath('/tasks')
@@ -95,68 +138,6 @@ export async function startTask(taskId: string): Promise<TaskActionResult> {
     console.error('Error starting task:', error)
     return { success: false, message: 'An error occurred' }
   }
-}
-
-/**
- * Immediately complete an ad task and credit rewards
- */
-async function completeTaskImmediately(
-  completionId: string,
-  rewardAmount: number,
-  userId: string
-) {
-  const supabase = await createClient()
-
-  try {
-    // Get user's current balance and points
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('usdt_balance, points')
-      .eq('id', userId)
-      .single()
-
-    if (!profile) return
-
-    const newBalance = profile.usdt_balance + rewardAmount
-    const newPoints = profile.points + rewardAmount * 10
-
-    // Update profile with new balance and points
-    await supabase
-      .from('profiles')
-      .update({
-        usdt_balance: newBalance,
-        points: newPoints,
-      })
-      .eq('id', userId)
-
-    // Mark task completion as completed
-    await supabase
-      .from('task_completions')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        reward_credited: true,
-      })
-      .eq('id', completionId)
-
-    // Check and process referral payout (first task completion)
-    await checkAndProcessReferral(userId)
-
-    revalidatePath('/tasks')
-    revalidatePath('/dashboard')
-  } catch (error) {
-    console.error('Error completing task immediately:', error)
-  }
-}
-
-/**
- * Schedule task completion after 5 minutes (for social tasks)
- * This is handled client-side with a timer that calls the API route
- */
-function scheduleTaskCompletion(completionId: string, rewardAmount: number, userId: string) {
-  // The client will handle the 5-minute timer and call the API route
-  // We don't need server-side scheduling here
-  // The API route at /api/tasks/complete will handle the actual completion
 }
 
 /**

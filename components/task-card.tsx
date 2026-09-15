@@ -21,7 +21,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   const [loading, setLoading] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
 
-  // Handle 5-minute verification for social tasks
+  // Handle 5-minute verification for social tasks ONLY
   useEffect(() => {
     if (completion?.status === 'verifying' && task.type === 'social') {
       const startTime = new Date(completion.started_at).getTime()
@@ -43,7 +43,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
 
       return () => clearInterval(interval)
     }
-  }, [completion, task.type])
+  }, [completion?.id, completion?.status, completion?.started_at, task.type])
 
   const completeVerifiedTask = async (completionId: string) => {
     try {
@@ -65,6 +65,9 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   }
 
   const handlePerformTask = async () => {
+    // Prevent multiple clicks on the same task
+    if (loading) return
+    
     setLoading(true)
     try {
       // Inject ad script dynamically for ad-type tasks BEFORE starting the task
@@ -103,6 +106,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         }
       }
       
+      // Start the task - for ad tasks this will immediately complete and credit reward
       const result = await startTask(task.id)
       
       if (result.success) {
@@ -128,31 +132,39 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   const getStatusBadge = () => {
     if (!completion) return null
 
-    switch (completion.status) {
-      case 'completed':
-        return (
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-            <CheckCircle2 className="mr-1 h-3 w-3" />
-            Completed
-          </Badge>
-        )
-      case 'verifying':
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-            <Clock className="mr-1 h-3 w-3" />
-            Verifying
-          </Badge>
-        )
-      case 'pending':
-        return (
-          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-            <Clock className="mr-1 h-3 w-3" />
-            In Progress
-          </Badge>
-        )
-      default:
-        return null
+    // Ad tasks should only show completed state (never pending/verifying)
+    if (task.type === 'ad' && completion.status === 'completed') {
+      return (
+        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+          <CheckCircle2 className="mr-1 h-3 w-3" />
+          Completed
+        </Badge>
+      )
     }
+
+    // Social tasks can show all states
+    if (task.type === 'social') {
+      switch (completion.status) {
+        case 'completed':
+          return (
+            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              <CheckCircle2 className="mr-1 h-3 w-3" />
+              Completed
+            </Badge>
+          )
+        case 'verifying':
+          return (
+            <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+              <Clock className="mr-1 h-3 w-3" />
+              Verifying
+            </Badge>
+          )
+        default:
+          return null
+      }
+    }
+
+    return null
   }
 
   const formatTime = (ms: number) => {
@@ -162,8 +174,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   }
 
   const isCompleted = completion?.status === 'completed'
-  const isInProgress = completion && completion.status !== 'completed'
-  const isVerifying = completion?.status === 'verifying'
+  const isVerifying = completion?.status === 'verifying' && task.type === 'social'
 
   return (
     <>
@@ -232,7 +243,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         <CardFooter>
           <Button
             onClick={() => setShowModal(true)}
-            disabled={isCompleted || isInProgress || loading}
+            disabled={isCompleted || isVerifying || loading}
             className="w-full"
             variant={isCompleted ? 'outline' : 'default'}
           >
@@ -248,8 +259,6 @@ export function TaskCard({ task, completion }: TaskCardProps) {
                 <Clock className="mr-2 h-4 w-4" />
                 Verifying...
               </>
-            ) : isInProgress ? (
-              'In Progress'
             ) : (
               'Perform Task'
             )}
