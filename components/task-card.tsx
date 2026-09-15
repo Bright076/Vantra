@@ -190,19 +190,6 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         </CardHeader>
 
         <CardContent className="flex-1 space-y-3">
-          {/* Ad Network Slot - Will be injected dynamically on task click */}
-          {task.ad_network_slot && task.type === 'ad' && (
-            <div className="rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900/20">
-              <div className="text-center text-xs text-blue-600 dark:text-blue-400">
-                <AlertCircle className="mx-auto mb-1 h-4 w-4" />
-                <p className="font-medium">Ad-Supported Task</p>
-                <p className="mt-1 text-[10px] opacity-80">
-                  Ad script will load when you click "Perform Task"
-                </p>
-              </div>
-            </div>
-          )}
-
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="rounded-full bg-green-100 p-1.5 dark:bg-green-900">
