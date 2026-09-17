@@ -5,6 +5,7 @@ import { Task, TaskCompletion } from '@/lib/types/database'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
+import { Toast } from './ui/toast'
 import { DollarSign, Trophy, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
 import { TaskConfirmationModal } from './task-confirmation-modal'
 import { startTask } from '@/lib/actions/task-actions'
@@ -20,6 +21,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+  const [showToast, setShowToast] = useState(false)
 
   // Handle 5-minute verification for social tasks ONLY
   useEffect(() => {
@@ -56,8 +58,13 @@ export function TaskCard({ task, completion }: TaskCardProps) {
       const result = await response.json()
 
       if (result.success) {
+        // Show success toast
+        setShowToast(true)
+        
         // Refresh to show completed state
-        router.refresh()
+        setTimeout(() => {
+          router.refresh()
+        }, 1000)
       }
     } catch (error) {
       console.error('Error completing verified task:', error)
@@ -110,13 +117,20 @@ export function TaskCard({ task, completion }: TaskCardProps) {
       const result = await startTask(task.id)
       
       if (result.success) {
+        // Show success toast for ad tasks (instant completion)
+        if (task.type === 'ad') {
+          setShowToast(true)
+        }
+        
         // Open task link in new tab (if link exists)
         if (task.link) {
           window.open(task.link, '_blank', 'noopener,noreferrer')
         }
         
         // Refresh to show updated state
-        router.refresh()
+        setTimeout(() => {
+          router.refresh()
+        }, task.type === 'ad' ? 1500 : 500)
       } else {
         alert(result.message || 'Failed to start task')
       }
@@ -259,6 +273,15 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         onConfirm={handlePerformTask}
         taskType={task.type}
       />
+
+      {showToast && (
+        <Toast
+          title="Task Completed!"
+          description="Your reward has been added to your balance."
+          variant="success"
+          onClose={() => setShowToast(false)}
+        />
+      )}
     </>
   )
 }
