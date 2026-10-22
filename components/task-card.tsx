@@ -20,31 +20,29 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
   const [showToast, setShowToast] = useState(false)
-  const [isCompleting, setIsCompleting] = useState(false) // Prevent duplicate API calls
+  const [isCompleting, setIsCompleting] = useState(false)
 
-  // Handle 5-minute verification for social tasks ONLY
+  // Silent background verification for social tasks - NO UI timer
   useEffect(() => {
     if (completion?.status === 'verifying' && task.type === 'social' && !isCompleting) {
       const startTime = new Date(completion.started_at).getTime()
       const endTime = startTime + 5 * 60 * 1000 // 5 minutes
+      const now = Date.now()
+      const remaining = endTime - now
 
-      const updateTimer = () => {
-        const now = Date.now()
-        const remaining = Math.max(0, endTime - now)
-        setTimeRemaining(remaining)
-
-        // If timer is complete, call API to complete the task ONCE
-        if (remaining === 0 && !isCompleting) {
-          completeVerifiedTask(completion.id)
-        }
+      // If time already passed, complete immediately
+      if (remaining <= 0) {
+        completeVerifiedTask(completion.id)
+        return
       }
 
-      updateTimer()
-      const interval = setInterval(updateTimer, 1000)
+      // Set timeout to complete after remaining time
+      const timeout = setTimeout(() => {
+        completeVerifiedTask(completion.id)
+      }, remaining)
 
-      return () => clearInterval(interval)
+      return () => clearTimeout(timeout)
     }
   }, [completion?.id, completion?.status, completion?.started_at, task.type, isCompleting])
 
@@ -64,61 +62,48 @@ export function TaskCard({ task, completion }: TaskCardProps) {
       const result = await response.json()
 
       if (result.success) {
-        // Show success toast
+        // Show success toast ONCE
         setShowToast(true)
         
         // Refresh to show completed state
         setTimeout(() => {
           router.refresh()
-        }, 1000)
-      } else {
-        // If task already completed, just refresh
-        if (result.message?.includes('already completed')) {
-          router.refresh()
-        }
+        }, 2000)
       }
     } catch (error) {
       console.error('Error completing verified task:', error)
-    } finally {
-      // Keep isCompleting true to prevent any further calls
-      // Don't reset it - task should only complete once
     }
+    // Keep isCompleting true - never reset to prevent retries
   }
 
   const handlePerformTask = async () => {
-    // Prevent multiple clicks on the same task
+    // Prevent multiple clicks
     if (loading) return
     
     setLoading(true)
     try {
-      // Inject ad script dynamically for ad-type tasks BEFORE starting the task
+      // Inject ad script for ad-type tasks
       if (task.type === 'ad' && task.ad_network_slot) {
-        // Create a temporary container for the script
         const scriptContainer = document.createElement('div')
         scriptContainer.innerHTML = task.ad_network_slot
         
-        // Extract and execute all script tags from the ad_network_slot
         const scripts = scriptContainer.getElementsByTagName('script')
         for (let i = 0; i < scripts.length; i++) {
           const oldScript = scripts[i]
           const newScript = document.createElement('script')
           
-          // Copy all attributes
           Array.from(oldScript.attributes).forEach(attr => {
             newScript.setAttribute(attr.name, attr.value)
           })
           
-          // Copy script content
           if (oldScript.src) {
             newScript.src = oldScript.src
           } else {
             newScript.textContent = oldScript.textContent
           }
           
-          // Append to body to execute
           document.body.appendChild(newScript)
           
-          // Clean up after a short delay
           setTimeout(() => {
             if (newScript.parentNode) {
               newScript.parentNode.removeChild(newScript)
@@ -127,11 +112,11 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         }
       }
       
-      // Start the task - for ad tasks this will immediately complete and credit reward
+      // Start the task
       const result = await startTask(task.id)
       
       if (result.success) {
-        // Show success toast for ad tasks (instant completion)
+        // Show success toast for ad tasks only (instant completion)
         if (task.type === 'ad') {
           setShowToast(true)
         }
@@ -160,7 +145,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   const getStatusBadge = () => {
     if (!completion) return null
 
-    // Ad tasks should only show completed state (never pending/verifying)
+    // Ad tasks: only show completed
     if (task.type === 'ad' && completion.status === 'completed') {
       return (
         <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -170,35 +155,27 @@ export function TaskCard({ task, completion }: TaskCardProps) {
       )
     }
 
-    // Social tasks can show all states
+    // Social tasks
     if (task.type === 'social') {
-      switch (completion.status) {
-        case 'completed':
-          return (
-            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-              <CheckCircle2 className="mr-1 h-3 w-3" />
-              Completed
-            </Badge>
-          )
-        case 'verifying':
-          return (
-            <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-              <Clock className="mr-1 h-3 w-3" />
-              Verifying
-            </Badge>
-          )
-        default:
-          return null
+      if (completion.status === 'completed') {
+        return (
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+            <CheckCircle2 className="mr-1 h-3 w-3" />
+            Completed
+          </Badge>
+        )
+      }
+      if (completion.status === 'verifying') {
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+            <Clock className="mr-1 h-3 w-3" />
+            Pending Approval
+          </Badge>
+        )
       }
     }
 
     return null
-  }
-
-  const formatTime = (ms: number) => {
-    const minutes = Math.floor(ms / 60000)
-    const seconds = Math.floor((ms % 60000) / 1000)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
   const isCompleted = completion?.status === 'completed'
@@ -244,12 +221,12 @@ export function TaskCard({ task, completion }: TaskCardProps) {
             </div>
           </div>
 
-          {/* Verification Timer */}
-          {isVerifying && timeRemaining !== null && timeRemaining > 0 && (
+          {/* Waiting for approval message - NO TIMER */}
+          {isVerifying && (
             <div className="rounded-lg bg-yellow-50 p-3 dark:bg-yellow-900/20">
               <div className="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
-                <Clock className="h-4 w-4 animate-spin" />
-                <span>Verifying... {formatTime(timeRemaining)} remaining</span>
+                <AlertCircle className="h-4 w-4" />
+                <span>Waiting for admin confirmation. You can redo the task if you forgot to complete it.</span>
               </div>
             </div>
           )}
@@ -258,9 +235,9 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         <CardFooter>
           <Button
             onClick={() => setShowModal(true)}
-            disabled={isCompleted || isVerifying || loading}
+            disabled={isCompleted || loading}
             className="w-full"
-            variant={isCompleted ? 'outline' : 'default'}
+            variant={isCompleted ? 'outline' : isVerifying ? 'secondary' : 'default'}
           >
             {loading ? (
               'Loading...'
@@ -270,10 +247,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
                 Completed
               </>
             ) : isVerifying ? (
-              <>
-                <Clock className="mr-2 h-4 w-4" />
-                Verifying...
-              </>
+              'Redo Task'
             ) : (
               'Perform Task'
             )}

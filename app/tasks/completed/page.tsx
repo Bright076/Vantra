@@ -23,7 +23,7 @@ export default async function CompletedTasksPage() {
 
   const supabase = await createClient()
 
-  // Fetch user's completed AND verifying tasks with task details
+  // Fetch ONLY completed tasks (not verifying)
   const { data: completedTasks, error } = await supabase
     .from('task_completions')
     .select(`
@@ -37,7 +37,7 @@ export default async function CompletedTasksPage() {
       )
     `)
     .eq('user_id', user.id)
-    .in('status', ['completed', 'verifying'])
+    .eq('status', 'completed')
     .order('completed_at', { ascending: false })
 
   if (error) {
@@ -69,10 +69,10 @@ export default async function CompletedTasksPage() {
               Back to Available Tasks
             </a>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              My Tasks
+              Completed Tasks
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Your completed and pending task history
+              Your task completion history
             </p>
           </div>
 
@@ -153,16 +153,6 @@ export default async function CompletedTasksPage() {
                           <h3 className="font-semibold text-gray-900 dark:text-white">
                             {completion.tasks?.title || 'Unknown Task'}
                           </h3>
-                          {completion.status === 'completed' ? (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                              <CheckCircle2 className="mr-1 h-3 w-3" />
-                              Completed
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                              Verifying
-                            </Badge>
-                          )}
                           <Badge
                             variant="outline"
                             className={
