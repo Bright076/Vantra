@@ -22,10 +22,11 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   const [loading, setLoading] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
   const [showToast, setShowToast] = useState(false)
+  const [isCompleting, setIsCompleting] = useState(false) // Prevent duplicate API calls
 
   // Handle 5-minute verification for social tasks ONLY
   useEffect(() => {
-    if (completion?.status === 'verifying' && task.type === 'social') {
+    if (completion?.status === 'verifying' && task.type === 'social' && !isCompleting) {
       const startTime = new Date(completion.started_at).getTime()
       const endTime = startTime + 5 * 60 * 1000 // 5 minutes
 
@@ -34,8 +35,8 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         const remaining = Math.max(0, endTime - now)
         setTimeRemaining(remaining)
 
-        // If timer is complete, call API to complete the task
-        if (remaining === 0) {
+        // If timer is complete, call API to complete the task ONCE
+        if (remaining === 0 && !isCompleting) {
           completeVerifiedTask(completion.id)
         }
       }
@@ -45,9 +46,14 @@ export function TaskCard({ task, completion }: TaskCardProps) {
 
       return () => clearInterval(interval)
     }
-  }, [completion?.id, completion?.status, completion?.started_at, task.type])
+  }, [completion?.id, completion?.status, completion?.started_at, task.type, isCompleting])
 
   const completeVerifiedTask = async (completionId: string) => {
+    // Prevent duplicate calls
+    if (isCompleting) return
+    
+    setIsCompleting(true)
+    
     try {
       const response = await fetch('/api/tasks/complete', {
         method: 'POST',
@@ -65,9 +71,17 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         setTimeout(() => {
           router.refresh()
         }, 1000)
+      } else {
+        // If task already completed, just refresh
+        if (result.message?.includes('already completed')) {
+          router.refresh()
+        }
       }
     } catch (error) {
       console.error('Error completing verified task:', error)
+    } finally {
+      // Keep isCompleting true to prevent any further calls
+      // Don't reset it - task should only complete once
     }
   }
 

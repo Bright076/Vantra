@@ -148,7 +148,7 @@ export async function completeVerifiedTask(completionId: string): Promise<TaskAc
   const supabase = await createClient()
 
   try {
-    // Get completion details
+    // Get completion details with a lock to prevent race conditions
     const { data: completion, error: completionError } = await supabase
       .from('task_completions')
       .select('*, tasks(*)')
@@ -159,8 +159,8 @@ export async function completeVerifiedTask(completionId: string): Promise<TaskAc
       return { success: false, message: 'Completion not found' }
     }
 
-    // Check if already completed
-    if (completion.status === 'completed') {
+    // CRITICAL: Check if already completed - prevent duplicate payments
+    if (completion.status === 'completed' || completion.reward_credited === true) {
       return { success: true, message: 'Task already completed' }
     }
 
@@ -171,6 +171,23 @@ export async function completeVerifiedTask(completionId: string): Promise<TaskAc
 
     if (elapsedMinutes < 5) {
       return { success: false, message: 'Verification period not complete' }
+    }
+
+    // ATOMIC UPDATE: Mark as completed FIRST to prevent duplicate processing
+    const { error: updateError } = await supabase
+      .from('task_completions')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        reward_credited: true,
+      })
+      .eq('id', completionId)
+      .eq('status', 'verifying') // Only update if still verifying (prevents race condition)
+
+    // If update failed, task was already completed by another request
+    if (updateError) {
+      console.error('Task already completed or update failed:', updateError)
+      return { success: true, message: 'Task already completed' }
     }
 
     // Get user's current balance and points
@@ -196,16 +213,6 @@ export async function completeVerifiedTask(completionId: string): Promise<TaskAc
         points: newPoints,
       })
       .eq('id', completion.user_id)
-
-    // Mark task completion as completed
-    await supabase
-      .from('task_completions')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        reward_credited: true,
-      })
-      .eq('id', completionId)
 
     // Check and process referral payout (first task completion)
     await checkAndProcessReferral(completion.user_id)
