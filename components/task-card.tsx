@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Task, TaskCompletion } from '@/lib/types/database'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -21,37 +21,34 @@ export function TaskCard({ task, completion }: TaskCardProps) {
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showToast, setShowToast] = useState(false)
-  const [isCompleting, setIsCompleting] = useState(false)
+  const completionAttempted = useRef(false) // Track if we already tried to complete this
 
-  // Silent background verification for social tasks - NO UI timer
+  // Silent background verification for social tasks - NO UI, NO TOAST on mount
   useEffect(() => {
-    if (completion?.status === 'verifying' && task.type === 'social' && !isCompleting) {
+    if (completion?.status === 'verifying' && task.type === 'social' && !completionAttempted.current) {
       const startTime = new Date(completion.started_at).getTime()
       const endTime = startTime + 5 * 60 * 1000 // 5 minutes
       const now = Date.now()
       const remaining = endTime - now
 
-      // If time already passed, complete immediately
+      // If time already passed, complete immediately (silently, no toast)
       if (remaining <= 0) {
-        completeVerifiedTask(completion.id)
+        completionAttempted.current = true
+        completeVerifiedTaskSilently(completion.id)
         return
       }
 
       // Set timeout to complete after remaining time
       const timeout = setTimeout(() => {
-        completeVerifiedTask(completion.id)
+        completionAttempted.current = true
+        completeVerifiedTaskSilently(completion.id)
       }, remaining)
 
       return () => clearTimeout(timeout)
     }
-  }, [completion?.id, completion?.status, completion?.started_at, task.type, isCompleting])
+  }, [completion?.id, completion?.status, completion?.started_at, task.type])
 
-  const completeVerifiedTask = async (completionId: string) => {
-    // Prevent duplicate calls
-    if (isCompleting) return
-    
-    setIsCompleting(true)
-    
+  const completeVerifiedTaskSilently = async (completionId: string) => {
     try {
       const response = await fetch('/api/tasks/complete', {
         method: 'POST',
@@ -62,18 +59,12 @@ export function TaskCard({ task, completion }: TaskCardProps) {
       const result = await response.json()
 
       if (result.success) {
-        // Show success toast ONCE
-        setShowToast(true)
-        
-        // Refresh to show completed state
-        setTimeout(() => {
-          router.refresh()
-        }, 2000)
+        // Refresh to show completed state - NO TOAST
+        router.refresh()
       }
     } catch (error) {
       console.error('Error completing verified task:', error)
     }
-    // Keep isCompleting true - never reset to prevent retries
   }
 
   const handlePerformTask = async () => {
@@ -116,7 +107,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
       const result = await startTask(task.id)
       
       if (result.success) {
-        // Show success toast for ad tasks only (instant completion)
+        // Show success toast ONLY for ad tasks (instant completion)
         if (task.type === 'ad') {
           setShowToast(true)
         }
@@ -262,6 +253,7 @@ export function TaskCard({ task, completion }: TaskCardProps) {
         taskType={task.type}
       />
 
+      {/* Toast ONLY for ad tasks when manually completed */}
       {showToast && (
         <Toast
           title="Task Completed!"

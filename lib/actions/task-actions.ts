@@ -29,7 +29,7 @@ export async function startTask(taskId: string): Promise<TaskActionResult> {
       return { success: false, message: 'Not authenticated' }
     }
 
-    // Check if user already completed this task
+    // Check if user already has a completion for this task
     const { data: existingCompletion } = await supabase
       .from('task_completions')
       .select('id, status')
@@ -38,7 +38,18 @@ export async function startTask(taskId: string): Promise<TaskActionResult> {
       .maybeSingle()
 
     if (existingCompletion) {
-      return { success: false, message: 'You have already completed this task' }
+      // If task is completed, don't allow redo
+      if (existingCompletion.status === 'completed') {
+        return { success: false, message: 'You have already completed this task' }
+      }
+      
+      // If task is verifying, delete it and allow redo (user might have forgotten to complete)
+      if (existingCompletion.status === 'verifying') {
+        await supabase
+          .from('task_completions')
+          .delete()
+          .eq('id', existingCompletion.id)
+      }
     }
 
     // Get task details
