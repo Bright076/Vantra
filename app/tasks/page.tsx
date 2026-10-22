@@ -40,12 +40,12 @@ export default async function TasksPage() {
     console.error('Error fetching tasks:', tasksError, completionsError)
   }
 
-  // Get IDs of completed tasks
+  // Get IDs of completed AND verifying tasks (remove both from available tasks)
   const completedTaskIds = new Set(
-    completions?.filter(c => c.status === 'completed').map(c => c.task_id) || []
+    completions?.filter(c => c.status === 'completed' || c.status === 'verifying').map(c => c.task_id) || []
   )
 
-  // Filter out completed tasks - only show available tasks
+  // Filter out completed AND verifying tasks - only show truly available tasks
   const availableTasks = tasks?.filter(task => !completedTaskIds.has(task.id)) || []
 
   // Split available tasks by type
@@ -69,7 +69,7 @@ export default async function TasksPage() {
                 href="/tasks/completed"
                 className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                View Completed Tasks
+                View My Tasks
               </a>
             </div>
           </div>
