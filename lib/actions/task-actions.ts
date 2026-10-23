@@ -45,10 +45,16 @@ export async function startTask(taskId: string): Promise<TaskActionResult> {
       
       // If task is verifying, delete it and allow redo (user might have forgotten to complete)
       if (existingCompletion.status === 'verifying') {
-        await supabase
+        const { error: deleteError } = await supabase
           .from('task_completions')
           .delete()
           .eq('id', existingCompletion.id)
+          .eq('user_id', user.id) // Extra safety check
+        
+        if (deleteError) {
+          console.error('Error deleting verifying task:', deleteError)
+          return { success: false, message: 'Failed to reset task. Please try again.' }
+        }
       }
     }
 
