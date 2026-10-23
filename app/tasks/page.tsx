@@ -2,7 +2,6 @@ import { ProtectedRoute } from '@/lib/auth/protected-route'
 import { getUser } from '@/lib/auth/get-user'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { completeVerifiedTask } from '@/lib/actions/task-actions'
 import { TaskList } from '@/components/task-list'
 import { BottomNav } from '@/components/bottom-nav'
 import { Card } from '@/components/ui/card'
@@ -24,6 +23,21 @@ export default async function TasksPage() {
 
   const supabase = await createClient()
 
+  // SERVER-SIDE: Check and complete expired verifying tasks
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const response = await fetch(`${baseUrl}/api/tasks/check-expired`, {
+      method: 'GET',
+      cache: 'no-store',
+    })
+    if (response.ok) {
+      const result = await response.json()
+      console.log('Expired tasks check:', result)
+    }
+  } catch (error) {
+    console.error('Error checking expired tasks:', error)
+  }
+
   // Fetch all active tasks
   const { data: tasks, error: tasksError } = await supabase
     .from('tasks')
@@ -39,33 +53,6 @@ export default async function TasksPage() {
 
   if (tasksError || completionsError) {
     console.error('Error fetching tasks:', tasksError, completionsError)
-  }
-
-  // SERVER-SIDE: Auto-complete any verifying tasks that have passed 5 minutes
-  if (completions) {
-    const now = Date.now()
-    for (const completion of completions) {
-      if (completion.status === 'verifying') {
-        const startTime = new Date(completion.started_at).getTime()
-        const elapsedMinutes = (now - startTime) / (1000 * 60)
-        
-        // If 5 minutes have passed, complete the task on the server
-        if (elapsedMinutes >= 5) {
-          await completeVerifiedTask(completion.id)
-        }
-      }
-    }
-    
-    // Re-fetch completions after auto-completing
-    const { data: updatedCompletions } = await supabase
-      .from('task_completions')
-      .select('*')
-      .eq('user_id', user.id)
-    
-    if (updatedCompletions) {
-      completions.length = 0
-      completions.push(...updatedCompletions)
-    }
   }
 
   // Get IDs of ONLY completed tasks (not verifying)
