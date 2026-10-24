@@ -23,19 +23,58 @@ export default async function TasksPage() {
 
   const supabase = await createClient()
 
-  // SERVER-SIDE: Check and complete expired verifying tasks
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    const response = await fetch(`${baseUrl}/api/tasks/check-expired`, {
-      method: 'GET',
-      cache: 'no-store',
-    })
-    if (response.ok) {
-      const result = await response.json()
-      console.log('Expired tasks check:', result)
+  // SERVER-SIDE: Directly check and complete expired verifying tasks
+  const { data: verifyingTasks } = await supabase
+    .from('task_completions')
+    .select('id, started_at, user_id, tasks(reward_amount)')
+    .eq('status', 'verifying')
+
+  // Complete expired tasks directly in the database
+  if (verifyingTasks && verifyingTasks.length > 0) {
+    const now = Date.now()
+    
+    for (const task of verifyingTasks) {
+      const startTime = new Date(task.started_at).getTime()
+      const elapsedMinutes = (now - startTime) / (1000 * 60)
+      
+      // If 5 minutes have passed, complete it
+      if (elapsedMinutes >= 5) {
+        // Get user's current balance
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('usdt_balance, points')
+          .eq('id', task.user_id)
+          .single()
+        
+        if (profile && task.tasks) {
+          const rewardAmount = task.tasks.reward_amount
+          const newBalance = profile.usdt_balance + rewardAmount
+          const newPoints = profile.points + rewardAmount * 10
+          
+          // Update task completion to completed
+          await supabase
+            .from('task_completions')
+            .update({
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+              reward_credited: true,
+            })
+            .eq('id', task.id)
+            .eq('status', 'verifying') // Safety check
+          
+          // Update user's balance and points
+          await supabase
+            .from('profiles')
+            .update({
+              usdt_balance: newBalance,
+              points: newPoints,
+            })
+            .eq('id', task.user_id)
+          
+          console.log(`Completed task ${task.id} for user ${task.user_id}`)
+        }
+      }
     }
-  } catch (error) {
-    console.error('Error checking expired tasks:', error)
   }
 
   // Fetch all active tasks
